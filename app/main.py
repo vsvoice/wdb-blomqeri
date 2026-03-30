@@ -14,6 +14,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+rooms = [{"number": "1", "floor": "1", "beds": 1}, {"number": "2", "floor": "1", "beds": 2}, {"number": "40", "floor": "3", "beds": 2}]
+
 @app.get("/")
 def read_root():
     return { "msg": "Tjenixen igen!", "v": "0.2" }
@@ -28,3 +30,6 @@ def read_root(request: Request):
 def read_item(item_id: int, q: str = None):
     return {"id": id, "q": q}
 
+@app.get("/rooms")
+def read_root():
+    return rooms
