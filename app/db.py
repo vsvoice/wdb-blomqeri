@@ -34,4 +34,33 @@ def create_schema():
         floor VARCHAR,
         beds INT
       );
+
+      -- skapa hotel_rooms-tabellen
+      CREATE TABLE IF NOT EXISTS hotel_rooms (
+        id SERIAL PRIMARY KEY,
+        room_number INT,
+        type VARCHAR,
+        price NUMERIC
+      );
+
+      -- skapa hotel_guests-tabellen
+      CREATE TABLE IF NOT EXISTS hotel_guests (
+        id SERIAL PRIMARY KEY,
+        firstname VARCHAR,
+        lastname VARCHAR,
+        address VARCHAR
+      );
+
+      -- skapa hotel_bookings-tabellen
+      CREATE TABLE IF NOT EXISTS hotel_bookings (
+        id SERIAL PRIMARY KEY,
+        guest_id INT REFERENCES hotel_guests(id),
+        room_id INT REFERENCES hotel_rooms(id),
+        datefrom DATE,
+        dateto DATE,
+        addinfo VARCHAR
+      );
+
+      -- ändra kolumn efteråt 
+      -- ALTER TABLE hotel_bookings ALTER COLUMN datefrom SET DEFAULT NOW();
     """)

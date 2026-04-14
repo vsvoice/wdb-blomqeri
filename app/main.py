@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from datetime import date
 from app.db import get_conn, create_schema
 
 app = FastAPI()
@@ -17,6 +19,13 @@ app.add_middleware(
 
 # Skapa databas-schema
 create_schema()
+
+# datamodell för bokning
+class Booking(BaseModel):
+    guest_id: int
+    room_id: int
+    datefrom: date
+    dateto: date
 
 temp_rooms = [
     {"number": "1",  "floor": "1", "beds": 1}, 
@@ -37,8 +46,56 @@ def read_root():
 
 @app.get("/rooms")
 def rooms():
-    return temp_rooms
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT * 
+            FROM hotel_rooms
+            ORDER BY room_number
+        """)
+        rooms = cur.fetchall()
+    return rooms
+
+@app.get("/rooms/{id}")
+def get_room(id: int):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT * 
+            FROM hotel_rooms
+            WHERE id = %s
+        """, [id])
+        room = cur.fetchall()
+    return room
+
 
 @app.post("/bookings")
-def create_bookings():
-    return { "msg": "Bokningen skapades" }
+def create_booking(booking: Booking):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO hotel_bookings (
+            guest_id,
+            room_id,
+            datefrom,
+            dateto
+        ) VALUES (
+            %s, %s, %s, %s
+        ) RETURNING id
+        """, [
+            booking.guest_id, 
+            booking.room_id,
+            booking.datefrom,
+            booking.dateto
+        ])
+        new_booking = cur.fetchone()
+    return { "msg": "Bokningen skapades", "id": new_booking['id'] }
+
+@app.get("/if/{term}")
+def if_test(term: str):
+    ret_str = "Default message..."
+    if term == "hello" or term == "hi":
+        ret_str = "Hello yourself!"
+    elif term == "hej":
+        ret_str = "Hej på dig"
+    else:
+        ret_str = f'Vad betyder "{term}"?'
+    return { "msg": ret_str }
+    

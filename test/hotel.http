@@ -7,6 +7,8 @@ POST {{apiUrl}}/bookings
 Content-Type: application/json
 
 {
-  "number": "3",
-  "beds": 4
+  "room_id": 1,
+  "guest_id": 1,
+  "datefrom": "2026-05-01",
+  "dateto": "2026-05-03"
 }
