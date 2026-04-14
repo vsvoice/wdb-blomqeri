@@ -10,5 +10,9 @@ Content-Type: application/json
   "room_id": 1,
   "guest_id": 1,
   "datefrom": "2026-05-01",
-  "dateto": "2026-05-03"
+  "dateto": "2026-05-03",
+  "addinfo": "test1"
 }
+
+###
+GET {{apiUrl}}/all_bookings

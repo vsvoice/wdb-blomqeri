@@ -26,6 +26,7 @@ class Booking(BaseModel):
     room_id: int
     datefrom: date
     dateto: date
+    addinfo: str
 
 temp_rooms = [
     {"number": "1",  "floor": "1", "beds": 1}, 
@@ -75,18 +76,36 @@ def create_booking(booking: Booking):
             guest_id,
             room_id,
             datefrom,
-            dateto
+            dateto,
+            addinfo
         ) VALUES (
-            %s, %s, %s, %s
+            %s, %s, %s, %s, %s
         ) RETURNING id
         """, [
             booking.guest_id, 
             booking.room_id,
             booking.datefrom,
-            booking.dateto
+            booking.dateto,
+            booking.addinfo
         ])
         new_booking = cur.fetchone()
     return { "msg": "Bokningen skapades", "id": new_booking['id'] }
+
+@app.get("/all_bookings")
+def get_bookings():
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT 
+                b.datefrom,
+                r.room_number
+            FROM 
+                hotel_bookings b
+            INNER JOIN hotel_rooms r
+                ON r.id = b.room_id
+            ORDER BY b.id
+        """)
+        bookings = cur.fetchall()
+    return bookings
 
 @app.get("/if/{term}")
 def if_test(term: str):
