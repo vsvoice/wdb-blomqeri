@@ -68,6 +68,48 @@ def get_room(id: int):
     return room
 
 
+@app.get("/guests")
+def get_guests():
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT
+                g.*,
+                (
+                    SELECT COUNT(*)
+                    FROM hotel_bookings b
+                    WHERE b.guest_id = g.id
+                ) AS previous_visits
+            FROM
+                hotel_guests g
+            ORDER BY
+                g.id
+        """)
+        guests = cur.fetchall()
+    return guests
+
+@app.get("/bookings")
+def get_bookings(): 
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT
+                b.*,
+                g.firstname,
+                g.lastname,
+                r.room_number,
+                (b.dateto - b.datefrom) AS booked_nights,
+                (b.dateto - b.datefrom) * r.price AS total_price
+            FROM
+                hotel_bookings b
+            INNER JOIN
+                hotel_guests g ON b.guest_id = g.id
+            INNER JOIN
+                hotel_rooms r ON b.room_id = r.id
+            ORDER BY
+                b.id
+        """)
+        bookings = cur.fetchall()
+    return bookings
+
 @app.post("/bookings")
 def create_booking(booking: Booking):
     with get_conn() as conn, conn.cursor() as cur:
@@ -92,7 +134,7 @@ def create_booking(booking: Booking):
     return { "msg": "Bokningen skapades", "id": new_booking['id'] }
 
 @app.get("/all_bookings")
-def get_bookings():
+def get_all_bookings():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT 
