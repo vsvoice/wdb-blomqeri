@@ -10,22 +10,10 @@ def create_schema():
    with get_conn() as conn, conn.cursor() as cur:
     # Create the schema
     cur.execute("""
-      -- sample parent table
-      CREATE TABLE IF NOT EXISTS foo (
-        id SERIAL PRIMARY KEY, -- primary key
-        created_at TIMESTAMP DEFAULT now()
-      );
 
-      -- relation table (reference to foo)
-      CREATE TABLE IF NOT EXISTS sub_foo (
-        id SERIAL PRIMARY KEY, -- primary key
-        created_at TIMESTAMP DEFAULT now(),
-        foo_id INT REFERENCES foo(id),
-        info VARCHAR
-      );
-
-      -- lägg till nya kolumner
-      ALTER TABLE foo ADD COLUMN IF NOT EXISTS name VARCHAR;
+      -- Lägg till pgcrypto
+      CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    
 
       -- skapa hotelltabellen
       CREATE TABLE IF NOT EXISTS hotel (
@@ -50,6 +38,7 @@ def create_schema():
         lastname VARCHAR,
         address VARCHAR
       );
+      -- ALTER TABLE hotel_guests ADD COLUMN api_key VARCHAR DEFAULT encode(gen_random_bytes(32), 'hex');
 
       -- skapa hotel_bookings-tabellen
       CREATE TABLE IF NOT EXISTS hotel_bookings (
@@ -63,4 +52,5 @@ def create_schema():
 
       -- ändra kolumn efteråt 
       -- ALTER TABLE hotel_bookings ALTER COLUMN datefrom SET DEFAULT NOW();
+
     """)
