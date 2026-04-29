@@ -55,3 +55,37 @@ def create_schema():
       -- ALTER TABLE hotel_bookings ALTER COLUMN datefrom SET DEFAULT NOW();
 
     """)
+    print("DB schema created")
+
+    cur.execute("""
+      DROP VIEW bookings_view;
+      CREATE VIEW bookings_view AS
+        SELECT
+            b.*,
+            g.firstname,
+            g.lastname,
+            r.room_number,
+            (b.dateto - b.datefrom) AS booked_nights,
+            (b.dateto - b.datefrom) * r.price AS total_price
+        FROM
+            hotel_bookings b
+        INNER JOIN
+            hotel_guests g ON b.guest_id = g.id
+        INNER JOIN
+            hotel_rooms r ON b.room_id = r.id;
+      
+      CREATE OR REPLACE VIEW guests_view AS
+        SELECT
+          g.id, 
+          g.firstname, 
+          g.lastname, 
+          g.address,
+          (SELECT COUNT(*)
+              FROM hotel_bookings b
+              WHERE b.guest_id = g.id
+                  AND dateto < now()
+          ) AS previous_visits
+        FROM
+          hotel_guests g;
+    """)
+    print("DB views created")

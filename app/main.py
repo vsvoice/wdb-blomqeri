@@ -5,6 +5,7 @@ from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, conint
 from datetime import date
 from app.db import get_conn, create_schema
+from markupsafe import escape
 
 app = FastAPI()
 
@@ -95,19 +96,20 @@ def get_guests():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT
-                g.*,
-                (
-                    SELECT COUNT(*)
+                g.id, 
+                g.firstname, 
+                g.lastname, 
+                g.address,
+                (SELECT COUNT(*)
                     FROM hotel_bookings b
                     WHERE b.guest_id = g.id
+                        AND dateto < now()
                 ) AS previous_visits
             FROM
                 hotel_guests g
-            WHERE
-                id = %s
             ORDER BY
                 g.id
-        """, [guest['id']])
+        """)
         guests = cur.fetchall()
     return guests
 
@@ -155,7 +157,7 @@ def create_booking(booking: Booking, guest: dict = Depends(validate_api_key)):
             booking.room_id,
             booking.datefrom,
             booking.dateto,
-            booking.addinfo
+            escape(booking.addinfo)
         ])
         new_booking = cur.fetchone()
     return { "msg": "Bokningen skapades", "id": new_booking['id'] }

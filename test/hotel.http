@@ -4,6 +4,9 @@
 ### Get all rooms
 GET {{apiUrl}}/rooms
 
+### Get all guests
+GET {{apiUrl}}/guests
+
 ### 
 POST {{apiUrl}}/bookings
 Content-Type: application/json
