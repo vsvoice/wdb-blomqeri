@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.security import APIKeyHeader
+from pydantic import BaseModel, conint
 from datetime import date
 from app.db import get_conn, create_schema
 
@@ -20,13 +21,33 @@ app.add_middleware(
 # Skapa databas-schema
 create_schema()
 
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+def validate_api_key(api_key: str = Depends(api_key_header)):
+    if not api_key:
+        raise HTTPException(status_code=401, detail={"error": "API key missing"})
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT * FROM hotel_guests WHERE api_key = %s
+        """, [api_key])
+        guest = cur.fetchone()
+        if not guest:
+            raise HTTPException(status_code=401, detail={"error": "Bad API key"})
+        return guest
+
+
 # datamodell för bokning
 class Booking(BaseModel):
-    guest_id: int
+    #guest_id: int  # Kommer via api-key istället
     room_id: int
     datefrom: date
     dateto: date
     addinfo: str
+
+# datamodell för att ändra bokning
+class RateBooking(BaseModel):
+    rating: conint(ge=1, le=5) # tar emot int mellan 1 och 5
 
 temp_rooms = [
     {"number": "1",  "floor": "1", "beds": 1}, 
@@ -68,6 +89,7 @@ def get_room(id: int):
     return room
 
 
+
 @app.get("/guests")
 def get_guests():
     with get_conn() as conn, conn.cursor() as cur:
@@ -81,14 +103,16 @@ def get_guests():
                 ) AS previous_visits
             FROM
                 hotel_guests g
+            WHERE
+                id = %s
             ORDER BY
                 g.id
-        """)
+        """, [guest['id']])
         guests = cur.fetchall()
     return guests
 
 @app.get("/bookings")
-def get_bookings(): 
+def get_bookings(guest: dict = Depends(validate_api_key)): 
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT
@@ -104,14 +128,17 @@ def get_bookings():
                 hotel_guests g ON b.guest_id = g.id
             INNER JOIN
                 hotel_rooms r ON b.room_id = r.id
+            WHERE 
+                b.guest_id = %s
             ORDER BY
                 b.id
-        """)
+            
+        """, [guest['id']])
         bookings = cur.fetchall()
     return bookings
 
 @app.post("/bookings")
-def create_booking(booking: Booking):
+def create_booking(booking: Booking, guest: dict = Depends(validate_api_key)):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             INSERT INTO hotel_bookings (
@@ -124,7 +151,7 @@ def create_booking(booking: Booking):
             %s, %s, %s, %s, %s
         ) RETURNING id
         """, [
-            booking.guest_id, 
+            guest['id'], 
             booking.room_id,
             booking.datefrom,
             booking.dateto,
@@ -132,6 +159,27 @@ def create_booking(booking: Booking):
         ])
         new_booking = cur.fetchone()
     return { "msg": "Bokningen skapades", "id": new_booking['id'] }
+
+
+@app.put("/bookings/{id}")
+def rate_booking(id: int, booking: RateBooking, guest: dict = Depends(validate_api_key)):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            UPDATE hotel_bookings SET
+                stars = %s
+            WHERE 
+                id = %s
+            AND
+                guest_id = %s
+            RETURNING id
+        """, [
+            booking.rating, 
+            id, 
+            guest['id']
+        ])
+        rated_booking = cur.fetchone()
+    return { "msg": "Booking updated", "id": rated_booking['id']}
+
 
 @app.get("/all_bookings")
 def get_all_bookings():

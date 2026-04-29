@@ -1,17 +1,28 @@
 @apiUrl = http://localhost:8080
+@api_key = cba77f309f099c525d772fdb873323a385c3d144d13b9a68930878d58366da0f
+
 ### Get all rooms
 GET {{apiUrl}}/rooms
 
 ### 
 POST {{apiUrl}}/bookings
 Content-Type: application/json
+X-API-Key: {{api_key}}
 
 {
   "room_id": 1,
-  "guest_id": 1,
   "datefrom": "2026-05-01",
   "dateto": "2026-05-03",
   "addinfo": "test1"
+}
+
+### 
+PUT {{apiUrl}}/bookings/9
+Content-Type: application/json
+X-API-Key: {{api_key}}
+
+{
+  "rating": 1
 }
 
 ###

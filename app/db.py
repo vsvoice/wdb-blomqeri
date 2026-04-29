@@ -38,7 +38,7 @@ def create_schema():
         lastname VARCHAR,
         address VARCHAR
       );
-      -- ALTER TABLE hotel_guests ADD COLUMN api_key VARCHAR DEFAULT encode(gen_random_bytes(32), 'hex');
+      ALTER TABLE hotel_guests ADD COLUMN IF NOT EXISTS api_key VARCHAR DEFAULT encode(gen_random_bytes(32), 'hex');
 
       -- skapa hotel_bookings-tabellen
       CREATE TABLE IF NOT EXISTS hotel_bookings (
@@ -49,6 +49,7 @@ def create_schema():
         dateto DATE,
         addinfo VARCHAR
       );
+      ALTER TABLE hotel_bookings ADD COLUMN IF NOT EXISTS stars INT;
 
       -- ändra kolumn efteråt 
       -- ALTER TABLE hotel_bookings ALTER COLUMN datefrom SET DEFAULT NOW();
